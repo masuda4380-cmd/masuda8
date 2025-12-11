@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ニュース取得アプリ（静的版）</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 1rem;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+        }
+        h1 {
+            color: #1e90ff;
+        }
+        p {
+            color: #333;
+        }
+        .buttons {
+            margin-bottom: 1rem;
+        }
+        button {
+            background-color: #1e90ff;
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            margin-right: 0.5rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        button:hover {
+            background-color: #0f70c0;
+        }
+        #newsContainer {
+            margin-top: 1rem;
+        }
+        .article {
+            background-color: #fff;
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .article a {
+            color: #1e90ff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .article a:hover {
+            text-decoration: underline;
+        }
+        .article .date {
+            display: block;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>ニュース取得アプリ（静的版）</h1>
+    <p>日本のニュースを取得して表示します。インターネット接続がない場合はサンプル記事を表示します。</p>
+    <div class="buttons">
+        <button id="fetchBtn">日本ニュース取得</button>
+        <button id="fetchEcoBtn">経済ニュース取得</button>
+        <button id="fetchPoliticsBtn">政治ニュース取得</button>
+        <button id="resetBtn">リセット</button>
+    </div>
+    <h2>日本のニュース</h2>
+    <div id="newsContainer"></div>
+    <h2>経済のニュース</h2>
+    <div id="ecoContainer"></div>
+
+    <h2>政治のニュース</h2>
+    <div id="politicsContainer"></div>
+</div>
+<script>
+// サンプルニュース: 日本ニュースのRSS取得に失敗した場合に表示するデータ
+const sampleNews = [
+    {
+        title: "西〜東日本 広範囲で土砂災害警戒",
+        link: "https://news.yahoo.co.jp/pickup/6552401?source=rss",
+        pubDate: "2025/9/13 20:28:08"
+    },
+    {
+        title: "国勢調査かたる詐欺 今年特に警戒",
+        link: "https://news.yahoo.co.jp/pickup/6552404?source=rss",
+        pubDate: "2025/9/13 21:04:43"
+    },
+    {
+        title: "電柱にオートバイ衝突 高校生死亡",
+        link: "https://news.yahoo.co.jp/pickup/6552391?source=rss",
+        pubDate: "2025/9/13 19:14:54"
+    },
+    {
+        title: "ドッグランや畑 満室続く団地内部",
+        link: "https://news.yahoo.co.jp/pickup/6552399?source=rss",
+        pubDate: "2025/9/13 21:01:53"
+    },
+    {
+        title: "セブン限定のゴンチャ なぜ売れる",
+        link: "https://news.yahoo.co.jp/pickup/6552403?source=rss",
+        pubDate: "2025/9/13 21:30:51"
+    }
+];
+
+// サンプル経済ニュース: 経済RSS取得に失敗した場合に表示するデータ
+const sampleEcoNews = [
+    {
+        title: "黒字なのに最終赤字になるのはなぜ? 脱・税理士が税務調査を披露",
+        link: "https://news.livedoor.com/article/detail/29562198/",
+        pubDate: "2025/9/12 18:00:00"
+    },
+    {
+        title: "Uber Eatsの新制度\u3010フラットレート\u3011実際に稼働してみた 配達員の辛さ実感",
+        link: "https://news.livedoor.com/article/detail/29564698/",
+        pubDate: "2025/9/13 02:07:56"
+    },
+    {
+        title: "LINEの動作が重くなる原因は\u300c冷蔵庫理論\u300d サクサク操作にする解決策",
+        link: "https://news.livedoor.com/article/detail/29562247/",
+        pubDate: "2025/9/12 18:03:00"
+    },
+    {
+        title: "マツダが若者に向けた\u300cプレミアムスポーツハッチ\u300d提案",
+        link: "https://news.livedoor.com/article/detail/29571795/",
+        pubDate: "2025/9/14 11:10:00"
+    },
+    {
+        title: "厚生年金は払った分だけ戻ってこない? 平均寿命からシミュレーション",
+        link: "https://news.livedoor.com/article/detail/29571070/",
+        pubDate: "2025/9/14 08:00:21"
+    }
+];
+
+// サンプル政治ニュース: 政治RSS取得に失敗した場合に表示するデータ
+const samplePoliticsNews = [
+    {
+        title: "首相が辞任を表明 次期総裁選の行方は?",
+        link: "https://news.yahoo.co.jp/pickup/6552000",
+        pubDate: "2025/9/13 12:00:00"
+    },
+    {
+        title: "新内閣が発足 経済再生を最重要課題に",
+        link: "https://news.yahoo.co.jp/pickup/6552001",
+        pubDate: "2025/9/13 14:30:00"
+    },
+    {
+        title: "国会で予算案が可決 与野党攻防の末に",
+        link: "https://news.yahoo.co.jp/pickup/6552002",
+        pubDate: "2025/9/13 16:45:00"
+    },
+    {
+        title: "野党が不信任決議案提出 政権への圧力強まる",
+        link: "https://news.yahoo.co.jp/pickup/6552003",
+        pubDate: "2025/9/14 09:00:00"
+    },
+    {
+        title: "外交問題で記者会見 首脳会談の成果を説明",
+        link: "https://news.yahoo.co.jp/pickup/6552004",
+        pubDate: "2025/9/14 11:15:00"
+    }
+];
+
+// 指定したコンテナにニュース一覧を描画する関数
+function renderNews(containerId, newsList) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = '';
+    newsList.forEach(item => {
+        const articleDiv = document.createElement('div');
+        articleDiv.className = 'article';
+
+        const link = document.createElement('a');
+        link.href = item.link;
+        link.textContent = item.title;
+        link.target = '_blank';
+        articleDiv.appendChild(link);
+
+        const dateSpan = document.createElement('span');
+        dateSpan.className = 'date';
+        dateSpan.textContent = item.pubDate;
+        articleDiv.appendChild(dateSpan);
+
+        container.appendChild(articleDiv);
+    });
+}
+
+// RSSフィードを取得して解析する関数
+async function fetchNews() {
+    // CORSを回避するためのプロキシ
+    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://news.yahoo.co.jp/rss/topics/top-picks.xml');
+    try {
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const text = await response.text();
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(text, 'text/xml');
+        const items = Array.from(xmlDoc.getElementsByTagName('item'));
+        const news = items.slice(0, 10).map(item => {
+            const title = item.getElementsByTagName('title')[0].textContent;
+            const link = item.getElementsByTagName('link')[0].textContent;
+            const pubDate = new Date(item.getElementsByTagName('pubDate')[0].textContent).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+            return { title, link, pubDate };
+        });
+        renderNews('newsContainer', news.length ? news : sampleNews);
+    } catch (e) {
+        // 通信エラーが発生した場合はサンプルデータを表示
+        renderNews('newsContainer', sampleNews);
+    }
+}
+
+// 経済ニュースを取得する関数
+async function fetchEcoNews() {
+    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://news.livedoor.com/topics/rss/eco.xml');
+    try {
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const text = await response.text();
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(text, 'text/xml');
+        const items = Array.from(xmlDoc.getElementsByTagName('item'));
+        const news = items.slice(0, 10).map(item => {
+            const title = item.getElementsByTagName('title')[0].textContent;
+            const link = item.getElementsByTagName('link')[0].textContent;
+            const pubDate = new Date(item.getElementsByTagName('pubDate')[0].textContent).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+            return { title, link, pubDate };
+        });
+        renderNews('ecoContainer', news.length ? news : sampleEcoNews);
+    } catch (e) {
+        renderNews('ecoContainer', sampleEcoNews);
+    }
+}
+
+// 政治ニュースを取得する関数
+async function fetchPoliticsNews() {
+    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://news.yahoo.co.jp/rss/topics/politics.xml');
+    try {
+        const response = await fetch(proxyUrl);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const text = await response.text();
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(text, 'text/xml');
+        const items = Array.from(xmlDoc.getElementsByTagName('item'));
+        const news = items.slice(0, 10).map(item => {
+            const title = item.getElementsByTagName('title')[0].textContent;
+            const link = item.getElementsByTagName('link')[0].textContent;
+            const pubDate = new Date(item.getElementsByTagName('pubDate')[0].textContent).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+            return { title, link, pubDate };
+        });
+        renderNews('politicsContainer', news.length ? news : samplePoliticsNews);
+    } catch (e) {
+        renderNews('politicsContainer', samplePoliticsNews);
+    }
+}
+
+// ボタンにイベントリスナーを設定
+document.getElementById('fetchBtn').addEventListener('click', fetchNews);
+document.getElementById('fetchEcoBtn').addEventListener('click', fetchEcoNews);
+document.getElementById('fetchPoliticsBtn').addEventListener('click', fetchPoliticsNews);
+document.getElementById('resetBtn').addEventListener('click', () => {
+    document.getElementById('newsContainer').innerHTML = '';
+    document.getElementById('ecoContainer').innerHTML = '';
+    document.getElementById('politicsContainer').innerHTML = '';
+});
+</script>
+</body>
+</html>
